@@ -34,9 +34,11 @@ class Event extends Std
                         throw new BadIntValueException('Bad integer value in id = ' . $data['id']);
                     }
                 }
+                $data['publicationStartDate'] = preg_replace('/[\.|\/]/', '-', $data['publicationStartDate']);
                 if ($data['start_pub_date'] = strtotime($data['publicationStartDate'] . ' ' . $data['publicationStartTime'])) {
                     unset($data['publicationStartDate']);
                     unset($data['publicationStartTime']);
+                    $data['publicationEndDate'] = preg_replace('/[\.|\/]/', '-', $data['publicationEndDate']);
                     if ($data['end_pub_date'] = strtotime($data['publicationEndDate'] . ' ' . $data['publicationEndTime'])) {
                         unset($data['publicationEndDate']);
                         unset($data['publicationEndTime']);
