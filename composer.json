@@ -1,0 +1,6 @@
+{
+  "require": {
+    "pr-of-it/t4": "dev-master",
+    "google/apiclient": "^2.0"
+  }
+}
