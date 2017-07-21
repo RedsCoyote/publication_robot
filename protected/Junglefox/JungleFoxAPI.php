@@ -209,6 +209,45 @@ class JungleFoxAPI
     }
 
     /**
+     * @param Event $event
+     * @return int
+     * @throws EventException
+     */
+    public function updateEvent(Event $event)
+    {
+        $options = [
+            CURLOPT_URL => $this->config->url . '/api/v2/events/' . $event->id,
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_HTTPHEADER => [
+                'Content-type: application/json; charset=UTF-8',
+                'auth_token: ' . $this->auth_token
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+        ];
+        $eventData = $event->getData();
+        if (array_key_exists('locations', $eventData)) {
+            $eventData['locations'] = $event->locations;  // Имя locations еще и имя связи, по getData не выдается
+        }
+        if (array_key_exists('pictures', $eventData)) {
+            $eventData['pictures'] = $event->pictures;  // Имя pictures еще и имя связи, по getData не выдается
+        }
+        $options[CURLOPT_POSTFIELDS] = json_encode(['event' => $eventData]);
+        curl_reset($this->curl);
+        curl_setopt_array($this->curl, $options);
+        $out = curl_exec($this->curl);
+        $info = curl_getinfo($this->curl);
+
+        if (false === $out || 200 != $info['http_code']) {
+            $output = '(updateEvent) From ' . $options[CURLOPT_URL] . ' returned [' . $info['http_code'] . ']';
+            if (curl_error($this->curl)) {
+                $output .= "\n" . curl_error($this->curl);
+            }
+            $this->logger->log('Error', $output, ['request' => $options]);
+            throw new EventException();
+        }
+    }
+
+    /**
      * Удаление события по его ID
      * @param int $eventID - ID удаляемого события
      */

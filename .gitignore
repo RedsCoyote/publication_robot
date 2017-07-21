@@ -1,3 +1,4 @@
 vendor
 .credentials
 protected/config.php
+logs

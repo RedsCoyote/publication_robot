@@ -15,9 +15,12 @@ class Event extends Std
     public function __construct($data = null)
     {
         $data = $this->validateAndSanitize($data);
+        $stream = $data['stream'];
         $streams = $data['streams'];
         unset($data['streams']);
+        unset($data['stream']);
         parent::__construct($data);
+        $this->stream = $stream;
         $this->streams = $streams;
     }
 
@@ -26,10 +29,10 @@ class Event extends Std
         if ($data['id'] === strval(intval($data['id']))) {
             $data['id'] = intval($data['id']);
             if ($data['stream'] === strval(intval($data['stream']))) {
-                $data['stream'] = intval($data['stream']);
+                $data['stream'] = ['id' => intval($data['stream'])];
                 foreach ($data['streams'] as $key => $stream) {
                     if ($stream === strval(intval($stream))) {
-                        $data['streams'][$key] = intval($stream);
+                        $data['streams'][$key] = ['id' => intval($stream)];
                     } else {
                         throw new BadIntValueException('Bad integer value in id = ' . $data['id']);
                     }

@@ -42,7 +42,11 @@ class Robot extends Command
     {
         if ($events) {
             foreach ($events as $event) {
-                //
+                try {
+                    $this->jfApi->updateEvent($event);
+                } catch (\Exception $e) {
+                    echo $e->getMessage(), "\n";
+                }
             }
         }
     }
@@ -64,7 +68,7 @@ class Robot extends Command
                 try {
                     $events[] = new Event($eventData);
                 } catch (\Exception $e) {
-                    echo $e->getMessage();
+                    echo $e->getMessage(), "\n";
                 }
             }
             return $events;
