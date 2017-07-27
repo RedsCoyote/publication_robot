@@ -12,46 +12,34 @@ use T4\Core\Std;
  */
 class Event extends Std
 {
-    public function __construct($data = null)
+    public function change($data, $toSave)
     {
-        $data = $this->validateAndSanitize($data);
-        $stream = $data['stream'];
-        $streams = $data['streams'];
-        unset($data['streams']);
-        unset($data['stream']);
-        parent::__construct($data);
-        $this->stream = $stream;
-        $this->streams = $streams;
-    }
-
-    private function validateAndSanitize($data)
-    {
-        if ($data['id'] === strval(intval($data['id']))) {
-            $data['id'] = intval($data['id']);
-            if ($data['stream'] === strval(intval($data['stream']))) {
-                $data['stream'] = ['id' => intval($data['stream'])];
-                foreach ($data['streams'] as $key => $stream) {
-                    if ($stream === strval(intval($stream))) {
-                        $data['streams'][$key] = ['id' => intval($stream)];
-                    } else {
-                        throw new BadIntValueException('Bad integer value in id = ' . $data['id']);
-                    }
-                }
-                $data['publicationStartDate'] = preg_replace('/[\.|\/]/', '-', $data['publicationStartDate']);
-                if ($data['start_pub_date'] = strtotime($data['publicationStartDate'] . ' ' . $data['publicationStartTime'])) {
-                    unset($data['publicationStartDate']);
-                    unset($data['publicationStartTime']);
-                    $data['publicationEndDate'] = preg_replace('/[\.|\/]/', '-', $data['publicationEndDate']);
-                    if ($data['end_pub_date'] = strtotime($data['publicationEndDate'] . ' ' . $data['publicationEndTime'])) {
-                        unset($data['publicationEndDate']);
-                        unset($data['publicationEndTime']);
-                        return $data;
-                    }
-                }
-                throw new BadDateTimeValueException('Bad date or time value in id = ' . $data['id']);
+        $data['publicationStartDate'] = preg_replace('/[\.|\/]/', '-', $data['publicationStartDate']);
+        if ($this->start_pub_date = strtotime($data['publicationStartDate'] . ' ' . $data['publicationStartTime'])) {
+        } else {
+            throw new BadDateTimeValueException('Bad date or time value in id = ' . $data['id']);
+        }
+        $streamId = $this->stream->id;
+        $this->offsetUnset('stream');
+        $this->stream = new \stdClass();
+        $this->stream->id = $streamId;
+        $this->offsetUnset('streams');
+        $streams = [];
+        foreach ($data['streams'] as $stream) {
+            if ($stream === strval(intval($stream))) {
+                $streamObj = new \stdClass();
+                $streamObj->id = intval($stream);
+                $streams[] = $streamObj;
+            } else {
+                throw new BadIntValueException('Bad integer value in id = ' . $data['id']);
             }
         }
-        throw new BadIntValueException('Bad integer value in id = ' . $data['id']);
+        $this->streams = $streams;
+        foreach (array_keys($this->getData()) as $key) {  // Удаляем поля, которые нам не нужны
+            if (!in_array($key, $toSave)) {
+                $this->offsetUnset($key);
+            }
+        }
     }
 }
 

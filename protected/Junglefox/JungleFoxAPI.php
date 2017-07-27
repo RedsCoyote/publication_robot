@@ -210,7 +210,6 @@ class JungleFoxAPI
 
     /**
      * @param Event $event
-     * @return int
      * @throws EventException
      */
     public function updateEvent(Event $event)
@@ -358,5 +357,33 @@ class JungleFoxAPI
     public function getCurl()
     {
         return $this->curl;
+    }
+
+    /**
+     * @param int $eventID
+     * @return Event|null
+     */
+    public function getEvent($eventID)
+    {
+        $options = [
+            CURLOPT_URL => $this->config->url . '/api/v2/events/' . $eventID,
+            CURLOPT_RETURNTRANSFER => true,
+        ];
+        curl_reset($this->curl);
+        curl_setopt_array($this->curl, $options);
+        curl_exec($this->curl);
+        $out = curl_exec($this->curl);
+        $info = curl_getinfo($this->curl);
+
+        if (false === $out || 200 != $info['http_code']) {
+            $output = '(getEvent) From ' . $options[CURLOPT_URL] . ' returned [' . $info['http_code'] . ']';
+            if (curl_error($this->curl)) {
+                $output .= "\n" . curl_error($this->curl);
+            }
+            $this->logger->log('Error', $output, ['request' => $options]);
+            return null;
+        } else {
+            return (new Event())->fill(json_decode($out));
+        }
     }
 }

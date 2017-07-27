@@ -6,7 +6,6 @@ use App\Core\Logger;
 use App\Exceptions\InitAPIException;
 use App\Google\Api;
 use App\Junglefox\JungleFoxAPI;
-use App\Models\Event;
 use Google_Service_Sheets;
 use T4\Console\Command;
 
@@ -31,27 +30,19 @@ class Robot extends Command
      */
     public function actionRun()
     {
-        $this->updateEvents(
-            $this->loadPublicationEvents(
-                (new Api())->getService()
-            )
-        );
-    }
-
-    private function updateEvents($events = null)
-    {
-        if ($events) {
-            foreach ($events as $event) {
-                try {
+        $eventsData = $this->loadPublicationEventsData((new Api())->getService());
+        foreach ($eventsData as $value) {
+            if ($value['id'] === strval(intval($value['id']))) {
+                $event = $this->jfApi->getEvent($value['id']);
+                if ($event) {
+                    $event->change($value, $this->app->config->spreadsheets->fields->getData());
                     $this->jfApi->updateEvent($event);
-                } catch (\Exception $e) {
-                    echo $e->getMessage(), "\n";
                 }
             }
         }
     }
 
-    private function loadPublicationEvents(Google_Service_Sheets $service)
+    private function loadPublicationEventsData(Google_Service_Sheets $service)
     {
         $values = $service->spreadsheets_values
             ->get($this->app->config->spreadsheets->id, $this->app->config->spreadsheets->range)
@@ -59,19 +50,14 @@ class Robot extends Command
         if (0 != count($values)) {  // Есть, что публиковать
             $keys = $this->app->config->spreadsheets->columns->getData();
             $keyLength = count($keys);
-            $events = [];
+            $eventsData = [];
             foreach ($values as $row) {
-                $eventData = array_merge(
+                $eventsData[] = array_merge(
                     array_combine($keys, array_slice($row, 0, $keyLength)),
                     ['streams' => array_slice($row, $keyLength)]
                 );
-                try {
-                    $events[] = new Event($eventData);
-                } catch (\Exception $e) {
-                    echo $e->getMessage(), "\n";
-                }
             }
-            return $events;
+            return $eventsData;
         }
         return null;
     }
