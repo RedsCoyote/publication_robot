@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Core\Logger;
+use App\Exceptions\EventException;
 use App\Exceptions\InitAPIException;
 use App\Google\Api;
 use App\Junglefox\JungleFoxAPI;
@@ -30,13 +31,18 @@ class Robot extends Command
      */
     public function actionRun()
     {
-        $eventsData = $this->loadPublicationEventsData((new Api())->getService());
-        foreach ($eventsData as $value) {
-            if ($value['id'] === strval(intval($value['id']))) {
-                $event = $this->jfApi->getEvent($value['id']);
-                if ($event) {
-                    $event->change($value, $this->app->config->spreadsheets->fields->getData());
-                    $this->jfApi->updateEvent($event);
+        if ($eventsData = $this->loadPublicationEventsData((new Api())->getService())) {
+            foreach ($eventsData as $value) {
+                if ($value['id'] === strval(intval($value['id']))) {
+                    $event = $this->jfApi->getEvent($value['id']);
+                    if ($event) {
+                        $event->change($value, $this->app->config->spreadsheets->fields->getData());
+                        try {
+                            $this->jfApi->updateEvent($event);
+                        } catch (EventException $e) {
+                            continue;
+                        }
+                    }
                 }
             }
         }
