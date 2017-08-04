@@ -386,4 +386,35 @@ class JungleFoxAPI
             return (new Event())->fill(json_decode($out));
         }
     }
+
+    public function addStreams($eventID, array $streams)
+    {
+        $options = [
+            CURLOPT_URL => $this->config->url . '/api/v2/events/' . $eventID . '/add_streams',
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-type: application/json; charset=UTF-8',
+                'auth_token: ' . $this->auth_token
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+        ];
+        $options[CURLOPT_POSTFIELDS] = json_encode([
+            'id' => $eventID,
+            'action' => 'add_streams',
+            'event' => ['streams' => $streams]
+        ]);
+        curl_reset($this->curl);
+        curl_setopt_array($this->curl, $options);
+        curl_exec($this->curl);
+        $out = curl_exec($this->curl);
+        $info = curl_getinfo($this->curl);
+
+        if (false === $out || 200 != $info['http_code']) {
+            $output = '(addStreams) From ' . $options[CURLOPT_URL] . ' returned [' . $info['http_code'] . ']';
+            if (curl_error($this->curl)) {
+                $output .= "\n" . curl_error($this->curl);
+            }
+            $this->logger->log('Error', $output, ['request' => $options]);
+        }
+    }
 }

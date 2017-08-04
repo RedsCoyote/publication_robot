@@ -38,6 +38,9 @@ class Robot extends Command
                     if ($event) {
                         $event->change($value, $this->app->config->spreadsheets->fields->getData());
                         try {
+                            $s = new \stdClass();
+                            $s->id = 1039;
+                            $this->jfApi->addStreams($event->id, [$s,]);
                             $this->jfApi->updateEvent($event);
                         } catch (EventException $e) {
                             continue;
