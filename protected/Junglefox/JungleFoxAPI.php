@@ -8,6 +8,7 @@ use App\Exceptions\EventException;
 use App\Exceptions\ImageException;
 use App\Exceptions\LocationException;
 use App\Exceptions\SignInException;
+use App\Exceptions\StreamsException;
 use App\Models\Event;
 use App\Models\Location;
 use App\Models\Picture;
@@ -371,7 +372,6 @@ class JungleFoxAPI
         ];
         curl_reset($this->curl);
         curl_setopt_array($this->curl, $options);
-        curl_exec($this->curl);
         $out = curl_exec($this->curl);
         $info = curl_getinfo($this->curl);
 
@@ -387,34 +387,107 @@ class JungleFoxAPI
         }
     }
 
-    public function addStreams($eventID, array $streams)
+    public function addStreams(Event $event, array $streamsId = [])
     {
-        $options = [
-            CURLOPT_URL => $this->config->url . '/api/v2/events/' . $eventID . '/add_streams',
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-type: application/json; charset=UTF-8',
-                'auth_token: ' . $this->auth_token
-            ],
-            CURLOPT_RETURNTRANSFER => true,
-        ];
-        $options[CURLOPT_POSTFIELDS] = json_encode([
-            'id' => $eventID,
-            'action' => 'add_streams',
-            'event' => ['streams' => $streams]
-        ]);
-        curl_reset($this->curl);
-        curl_setopt_array($this->curl, $options);
-        curl_exec($this->curl);
-        $out = curl_exec($this->curl);
-        $info = curl_getinfo($this->curl);
-
-        if (false === $out || 200 != $info['http_code']) {
-            $output = '(addStreams) From ' . $options[CURLOPT_URL] . ' returned [' . $info['http_code'] . ']';
-            if (curl_error($this->curl)) {
-                $output .= "\n" . curl_error($this->curl);
+        $streams = [];
+        if ([] === $streamsId) {
+            foreach ($event->streams as $stream) {
+                $streamObj = new \stdClass();
+                $streamObj->id = $stream->id;
+                $streams[] = $streamObj;
             }
-            $this->logger->log('Error', $output, ['request' => $options]);
+        } else {
+            foreach ($streamsId as $stream) {
+                if ($stream === strval(intval($stream))) {
+                    $streamObj = new \stdClass();
+                    $streamObj->id = intval($stream);
+                    $streams[] = $streamObj;
+                } else {
+                    throw new StreamsException('Bad integer value = ' . $stream);
+                }
+            }
+        }
+
+        if ([] !== $streams) {
+            $options = [
+                CURLOPT_URL => $this->config->url . '/api/v2/events/' . $event->id . '/add_streams',
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-type: application/json; charset=UTF-8',
+                    'auth_token: ' . $this->auth_token
+                ],
+                CURLOPT_RETURNTRANSFER => true,
+            ];
+            $options[CURLOPT_POSTFIELDS] = json_encode([
+                'id' => $event->id,
+                'action' => 'add_streams',
+                'event' => ['streams' => $streams]
+            ]);
+            curl_reset($this->curl);
+            curl_setopt_array($this->curl, $options);
+            $out = curl_exec($this->curl);
+            $info = curl_getinfo($this->curl);
+
+            if (false === $out || 200 != $info['http_code']) {
+                $output = '(addStreams) From ' . $options[CURLOPT_URL] . ' returned [' . $info['http_code'] . ']';
+                if (curl_error($this->curl)) {
+                    $output .= "\n" . curl_error($this->curl);
+                }
+                $this->logger->log('Error', $output, ['request' => $options]);
+                throw new StreamsException('Error adding streams on event ID = ' . $event->id);
+            }
+        }
+    }
+
+    public function delStreams(Event $event, array $streamsId = [])
+    {
+        $streams = [];
+        if ([] === $streamsId) {
+            foreach ($event->streams as $stream) {
+                $streamObj = new \stdClass();
+                $streamObj->id = $stream->id;
+                $streams[] = $streamObj;
+            }
+        } else {
+            foreach ($streamsId as $stream) {
+                if ($stream === strval(intval($stream))) {
+                    $streamObj = new \stdClass();
+                    $streamObj->id = intval($stream);
+                    $streams[] = $streamObj;
+                } else {
+                    throw new StreamsException('Bad integer value = ' . $stream);
+                }
+            }
+        }
+
+        if ([] !== $streams) {
+            $options = [
+                CURLOPT_URL => $this->config->url . '/api/v2/events/' . $event->id . '/remove_streams',
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-type: application/json; charset=UTF-8',
+                    'auth_token: ' . $this->auth_token
+                ],
+                CURLOPT_RETURNTRANSFER => true,
+            ];
+            $options[CURLOPT_POSTFIELDS] = json_encode([
+                'id' => $event->id,
+                'action' => 'remove_streams',
+                'event' => ['streams' => $streams]
+            ]);
+            curl_reset($this->curl);
+            curl_setopt_array($this->curl, $options);
+            $out = curl_exec($this->curl);
+            $info = curl_getinfo($this->curl);
+
+            if (false === $out || 200 != $info['http_code']) {
+                $output = '(addStreams) From ' . $options[CURLOPT_URL] . ' returned [' . $info['http_code'] . ']';
+                if (curl_error($this->curl)) {
+                    $output .= "\n" . curl_error($this->curl);
+                }
+                $this->logger->log('Error', $output, ['request' => $options]);
+                throw new StreamsException('Error deleting streams on event ID = ' . $event->id);
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Commands;
 use App\Core\Logger;
 use App\Exceptions\EventException;
 use App\Exceptions\InitAPIException;
+use App\Exceptions\StreamsException;
 use App\Google\Api;
 use App\Junglefox\JungleFoxAPI;
 use Google_Service_Sheets;
@@ -32,17 +33,18 @@ class Robot extends Command
     public function actionRun()
     {
         if ($eventsData = $this->loadPublicationEventsData((new Api())->getService())) {
-            foreach ($eventsData as $value) {
-                if ($value['id'] === strval(intval($value['id']))) {
-                    $event = $this->jfApi->getEvent($value['id']);
+            foreach ($eventsData as $values) {
+                if ($values['id'] === strval(intval($values['id']))) {
+                    $event = $this->jfApi->getEvent($values['id']);
                     if ($event) {
-                        $event->change($value, $this->app->config->spreadsheets->fields->getData());
                         try {
-                            $s = new \stdClass();
-                            $s->id = 1039;
-                            $this->jfApi->addStreams($event->id, [$s,]);
+                            $this->jfApi->delStreams($event);
+                            $event->change($values, $this->app->config->spreadsheets->fields->getData());
+                            $this->jfApi->addStreams($event);
                             $this->jfApi->updateEvent($event);
                         } catch (EventException $e) {
+                            continue;
+                        } catch (StreamsException $e) {
                             continue;
                         }
                     }
