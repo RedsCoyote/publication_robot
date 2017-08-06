@@ -152,6 +152,10 @@ class JungleFoxAPI
             CURLOPT_URL => $this->config->url . '/api/v3/streams?name_cont=' . urlencode($streamName),
             CURLOPT_POST => false,
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'auth_token: ' . $this->auth_token
+            ],
+
         ];
         curl_reset($this->curl);
         curl_setopt_array($this->curl, $options);
@@ -287,6 +291,10 @@ class JungleFoxAPI
             CURLOPT_URL => $pictureURL,
             CURLOPT_POST => false,
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'auth_token: ' . $this->auth_token
+            ],
+
         ];
 
         curl_reset($this->curl);
@@ -369,6 +377,9 @@ class JungleFoxAPI
         $options = [
             CURLOPT_URL => $this->config->url . '/api/v2/events/' . $eventID,
             CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'auth_token: ' . $this->auth_token
+            ],
         ];
         curl_reset($this->curl);
         curl_setopt_array($this->curl, $options);
