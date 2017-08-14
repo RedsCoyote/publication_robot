@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Core\Logger;
+use App\Exceptions\BadDateTimeValueException;
 use App\Exceptions\EventException;
 use App\Exceptions\InitAPIException;
 use App\Exceptions\StreamsException;
@@ -35,17 +36,19 @@ class Robot extends Command
         if ($eventsData = $this->loadPublicationEventsData((new Api())->getService())) {
             foreach ($eventsData as $values) {
                 if ($values['id'] === strval(intval($values['id']))) {
-                    $event = $this->jfApi->getEvent($values['id']);
-                    if ($event) {
-                        try {
-                            $this->jfApi->delStreams($event);
-                            $event->change($values, $this->app->config->spreadsheets->fields->getData());
-                            $this->jfApi->addStreams($event);
-                            $this->jfApi->updateEvent($event);
-                        } catch (EventException $e) {
-                            continue;
-                        } catch (StreamsException $e) {
-                            continue;
+                    if (!$this->isOldPublicationDate($values)) {
+                        $event = $this->jfApi->getEvent($values['id']);
+                        if ($event) {
+                            try {
+                                $this->jfApi->delStreams($event);
+                                $event->change($values, $this->app->config->spreadsheets->fields->getData());
+                                $this->jfApi->addStreams($event);
+                                $this->jfApi->updateEvent($event);
+                            } catch (EventException $e) {
+                                continue;
+                            } catch (StreamsException $e) {
+                                continue;
+                            }
                         }
                     }
                 }
@@ -88,6 +91,16 @@ class Robot extends Command
             return false;
         }
         return parent::beforeAction();
+    }
+
+    protected function isOldPublicationDate($data)
+    {
+        $data['publicationStartDate'] = preg_replace('/[\.|\/]/', '-', $data['publicationStartDate']);
+        if ($date = \DateTime::createFromFormat('d-m-y H:i', $data['publicationStartDate'] . ' ' . $data['publicationStartTime'], new \DateTimeZone('+0300'))) {
+            return $date->getTimestamp() < (new \DateTime('now', new \DateTimeZone('+0300')))->getTimestamp();
+        } else {
+            throw new BadDateTimeValueException('Bad date or time value in id = ' . $data['id']);
+        }
     }
 
 }
