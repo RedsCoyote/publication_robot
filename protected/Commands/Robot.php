@@ -14,11 +14,11 @@ use T4\Console\Command;
 
 class Robot extends Command
 {
-    protected $logger = null;
+    protected $logger;
     /**
      * @var JungleFoxAPI $jfApi
      */
-    protected $jfApi = null;
+    protected $jfApi;
 
     /**
      * Действие по-умолчанию
@@ -35,21 +35,25 @@ class Robot extends Command
     {
         if ($eventsData = $this->loadPublicationEventsData((new Api())->getService())) {
             foreach ($eventsData as $values) {
-                if ($values['id'] === strval(intval($values['id']))) {
-                    if (!$this->isOldPublicationDate($values)) {
-                        $event = $this->jfApi->getEvent($values['id']);
-                        if ($event) {
-                            try {
-                                $this->jfApi->delStreams($event);
-                                $event->change($values, $this->app->config->spreadsheets->fields->getData());
-                                $this->jfApi->addStreams($event);
-                                $this->jfApi->updateEvent($event);
-                            } catch (EventException $e) {
-                                continue;
-                            } catch (StreamsException $e) {
-                                continue;
+                if ($values['id'] === (string)((int)$values['id'])) {
+                    try {
+                        if (!$this->isOldPublicationDate($values)) {
+                            $event = $this->jfApi->getEvent($values['id']);
+                            if ($event) {
+                                try {
+//                                $this->jfApi->delStreams($event);
+                                    $event->change($values, $this->app->config->spreadsheets->fields->getData());
+                                    $this->jfApi->addStreams($event);
+                                    $this->jfApi->updateEvent($event);
+                                } catch (EventException $e) {
+                                    continue;
+                                } catch (StreamsException $e) {
+                                    continue;
+                                }
                             }
                         }
+                    } catch (BadDateTimeValueException $e) {
+                        continue;
                     }
                 }
             }
@@ -61,7 +65,7 @@ class Robot extends Command
         $values = $service->spreadsheets_values
             ->get($this->app->config->spreadsheets->id, $this->app->config->spreadsheets->range)
             ->getValues();
-        if (0 != count($values)) {  // Есть, что публиковать
+        if (0 !== count($values)) {  // Есть, что публиковать
             $keys = $this->app->config->spreadsheets->columns->getData();
             $keyLength = count($keys);
             $eventsData = [];
@@ -93,14 +97,21 @@ class Robot extends Command
         return parent::beforeAction();
     }
 
+    /**
+     * Проверяет актуальность текущей строки файла с заданиями
+     * Если текущее время больше времени публикации, то публиковать уже не надо
+     * @param $data
+     * @return bool
+     * @throws BadDateTimeValueException
+     */
     protected function isOldPublicationDate($data)
     {
         $data['publicationStartDate'] = preg_replace('/[\.|\/]/', '-', $data['publicationStartDate']);
+
         if ($date = \DateTime::createFromFormat('d-m-y H:i', $data['publicationStartDate'] . ' ' . $data['publicationStartTime'], new \DateTimeZone('+0300'))) {
             return $date->getTimestamp() < (new \DateTime('now', new \DateTimeZone('+0300')))->getTimestamp();
-        } else {
-            throw new BadDateTimeValueException('Bad date or time value in id = ' . $data['id']);
         }
-    }
 
+        throw new BadDateTimeValueException('Bad date or time value in id = ' . $data['id']);
+    }
 }
