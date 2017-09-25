@@ -70,10 +70,12 @@ class Robot extends Command
             $keyLength = count($keys);
             $eventsData = [];
             foreach ($values as $row) {
-                $eventsData[] = array_merge(
+                $rawDataArray = array_merge(
                     array_combine($keys, array_slice($row, 0, $keyLength)),
                     ['streams' => array_slice($row, $keyLength)]
                 );
+                unset($rawDataArray['title']);  // Удаляем заголовок, он нужен только редакторам
+                $eventsData[] = $rawDataArray;
             }
             return $eventsData;
         }
