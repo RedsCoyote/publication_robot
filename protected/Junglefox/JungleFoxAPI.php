@@ -434,6 +434,7 @@ class JungleFoxAPI
                 'action' => 'add_streams',
                 'event' => ['streams' => $streams]
             ]);
+            // example: {"id":1,"action":"add_streams","event":{"streams":[{"id":42},{"id":42}]}}
             curl_reset($this->curl);
             curl_setopt_array($this->curl, $options);
             $out = curl_exec($this->curl);
@@ -486,6 +487,7 @@ class JungleFoxAPI
                 'action' => 'remove_streams',
                 'event' => ['streams' => $streams]
             ]);
+            // example: {"id":1,"action":"remove_streams","event":{"streams":[{"id":42},{"id":42}]}}
             curl_reset($this->curl);
             curl_setopt_array($this->curl, $options);
             $out = curl_exec($this->curl);
